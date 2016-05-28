@@ -7,9 +7,15 @@
 //
 
 #include <iostream>
+#include "dans_xml.hpp"
 
-int main(int argc, const char * argv[]) {
-	// insert code here...
-	std::cout << "Hello, World!\n";
+using namespace dans_xml;
+
+
+int main( int argc, const char * argv[] )
+{
+	const char*		str = "<!DOCTYPE foo=bar thing silly=\"good thing\">\n<html>\n<head>\n</head>\n<body bgcolor = \"#ffeeff\" border = 1></body></html>";
+	dans_xml::document		theDoc(str,strlen(str));
+	
     return 0;
 }
