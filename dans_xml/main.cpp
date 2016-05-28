@@ -17,5 +17,8 @@ int main( int argc, const char * argv[] )
 	const char*		str = "<!DOCTYPE foo=bar thing silly=\"good thing\">\n<html>\n<head>\n<title>This &lt;may&gt; be neat</title>\n</head>\n<body bgcolor = \"#ffeeff\" border = 1></body></html>";
 	dans_xml::document		theDoc(str,strlen(str));
 	
+	xml_writer	writer( stdout );
+	theDoc.write( &writer );
+	
     return 0;
 }

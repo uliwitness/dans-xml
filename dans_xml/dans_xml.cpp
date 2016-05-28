@@ -435,7 +435,8 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_
 document::document( const char* inString, size_t inLength )
 {
 	vector<shared_ptr<node>>	nod;
-	nod.push_back( shared_ptr<node>(new node) );
+	root = shared_ptr<node>(new node);
+	nod.push_back( root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
 	size_t						x = 0;
@@ -443,8 +444,102 @@ document::document( const char* inString, size_t inLength )
 	{
 		state = (eat_char_fcn)state( inString[x++], this, nod, &att );
 	}
-	
-	nod.back()->print(0);
+}
+
+
+document::document( FILE* inFile )
+{
+	vector<shared_ptr<node>>	nod;
+	root = shared_ptr<node>(new node);
+	nod.push_back( root );
+	attribute					att;
+	eat_char_fcn				state = eat_whitespace;
+	while( feof(inFile) != 0 && state )
+	{
+		state = (eat_char_fcn)state( fgetc(inFile), this, nod, &att );
+	}
+}
+
+void	document::write( writer* inWriter )
+{
+	inWriter->write_node( root, 0 );
+}
+
+
+void	writer::write_node( std::shared_ptr<node> inNode, size_t depth )
+{
+	inNode->write( this, depth );
+}
+
+
+void	xml_writer::write_integer( long long inNum, size_t depth )
+{
+	output( std::to_string( inNum ) );
+}
+
+
+void	xml_writer::write_bool( bool inValue, size_t depth )
+{
+	output( inValue ? "<true />" : "<false />" );
+}
+
+
+void	xml_writer::write_string( const std::string& inStr, size_t depth )
+{
+	output( inStr );
+}
+
+
+void	xml_writer::write_open_tag_before_attributes( const std::string& inTagName, size_t numChildren, size_t depth )
+{
+	output( "<" );
+	output( inTagName );
+}
+
+
+void	xml_writer::write_open_tag_after_attributes( const std::string& inTagName, size_t numChildren, size_t depth )
+{
+	if( numChildren == 0 && inTagName.size() != 0 && inTagName[0] != '!' && inTagName[0] != '?' )
+		output( " />" );
+	else
+		output( ">" );
+}
+
+
+void	xml_writer::write_attribute( const std::string& inName, const std::string& inValue )
+{
+	output( " " );
+	output( inName );
+	output( "=\"" );
+	output( inValue );
+	output( "\"" );
+}
+
+
+void	xml_writer::write_close_tag( const std::string& inTagName, size_t numChildren, size_t depth )
+{
+	if( numChildren > 0 && (inTagName.size() == 0 || inTagName[0] != '!' || inTagName[0] != '?') )
+	{
+		output( "</" );
+		output( inTagName );
+		output( ">" );
+	}
+}
+
+
+void	xml_writer::output( const std::string& inStr )
+{
+	if( file )
+		fwrite( inStr.data(), 1, inStr.size(), file );
+	else
+		outStr->append( inStr );
+}
+
+
+void	node::write( writer* inWriter, size_t depth )
+{
+	for( auto child : children )
+		child->write( inWriter, depth );
 }
 
 
@@ -454,6 +549,22 @@ void	node::print( size_t depth )
 		child->print( depth );
 }
 
+
+void	tag::write( writer* inWriter, size_t depth )
+{
+	size_t numChildren = children.size();
+	inWriter->write_open_tag_before_attributes( name, numChildren, depth );
+	for( const attribute& att : attributes )
+	{
+		inWriter->write_attribute( att.name, att.value );
+	}
+	
+	inWriter->write_open_tag_after_attributes( name, numChildren, depth );
+	
+	node::write( inWriter, depth +1 );
+		
+	inWriter->write_close_tag( name, numChildren, depth );
+}
 
 
 void	tag::print( size_t depth )
@@ -476,6 +587,36 @@ void	tag::print( size_t depth )
 		
 		cout << "</" << name << ">";
 	}
+}
+
+
+void	text::write( writer* inWriter, size_t depth )
+{
+	std::string	currText;
+	size_t	len = text.length();
+	for( size_t x = 0; x < len; x++ )
+	{
+		char	currCh = text[x];
+		switch( currCh )
+		{
+			case '<':
+				currText.append( "&lt;" );
+				break;
+				
+			case '>':
+				currText.append( "&gt;" );
+				break;
+				
+			case '&':
+				currText.append( "&amp;" );
+				break;
+				
+			default:
+				currText.append( 1, currCh );
+		}
+	}
+	
+	inWriter->write_string( currText, depth );
 }
 
 
