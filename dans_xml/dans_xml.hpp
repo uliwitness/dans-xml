@@ -22,7 +22,7 @@ namespace dans_xml
 	public:
 		virtual ~node()	{}
 		
-		virtual void	print()	= 0;
+		virtual void	print();
 		
 		std::weak_ptr<node>					parent;
 		std::vector<std::shared_ptr<node>>	children;

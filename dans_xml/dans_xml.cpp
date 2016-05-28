@@ -399,7 +399,7 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_
 document::document( const char* inString, size_t inLength )
 {
 	vector<shared_ptr<node>>	nod;
-	nod.push_back( shared_ptr<node>(new tag) );
+	nod.push_back( shared_ptr<node>(new node) );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
 	size_t						x = 0;
@@ -412,19 +412,34 @@ document::document( const char* inString, size_t inLength )
 }
 
 
-void	tag::print()
+void	node::print()
 {
-	cout << "[<" << name;
-	for( const attribute& att : attributes )
-	{
-		cout << " [" << att.name << "]=\"" << att.value << "\"";
-	}
-	cout << ">]{";
-	
 	for( auto child : children )
 		child->print();
+}
+
+
+
+void	tag::print()
+{
+	cout << "<" << name;
+	for( const attribute& att : attributes )
+	{
+		cout << " " << att.name << "=\"" << att.value << "\"";
+	}
 	
-	cout << "}";
+	if( name.length() == 0 || name[0] == '!' || name[0] == '?' )
+		cout << ">";	// That's it, just print that tag.
+	else if( children.size() == 0 )
+		cout << " />";
+	else
+	{
+		cout << ">";
+		
+		node::print();
+		
+		cout << "</" << name << ">";
+	}
 }
 
 
