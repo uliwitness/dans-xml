@@ -16,19 +16,19 @@ using namespace dans_xml;
 
 typedef void (*func_ptr)();
 
-typedef func_ptr (*eat_char_fcn)( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );	// Returns another function of its type.
+typedef func_ptr (*eat_char_fcn)( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );	// Returns another function of its type.
 
 
-func_ptr	eat_whitespace( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
-func_ptr	eat_tag_name( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
-func_ptr	eat_tag_attr_name( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
-func_ptr	eat_tag_attr_value( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
-func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
-func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, shared_ptr<node>* nod, attribute* att );
+func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
 
 
 
-func_ptr	eat_whitespace( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -40,7 +40,8 @@ func_ptr	eat_whitespace( char currCh, document* doc, shared_ptr<node>* nod, attr
 			break;
 		
 		case '<':
-			(*nod) = make_shared<tag>();
+			shared_ptr<node>	theNode = make_shared<tag>();
+			nod.push_back( theNode );
 			return (func_ptr)eat_tag_name;
 			break;
 	}
@@ -49,7 +50,7 @@ func_ptr	eat_whitespace( char currCh, document* doc, shared_ptr<node>* nod, attr
 }
 
 
-func_ptr	eat_tag_name( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -61,22 +62,39 @@ func_ptr	eat_tag_name( char currCh, document* doc, shared_ptr<node>* nod, attrib
 			break;
 		
 		case '>':
-			doc->nodes.push_back( *nod );
-			*nod = nullptr;
+		{
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
+			if( prevNode->name.length() > 0 && prevNode->name[0] == '/' )
+			{
+				nod.pop_back();
+				shared_ptr<tag> closedNode = static_pointer_cast<tag,node>(nod.back());
+				nod.pop_back();
+				nod.back()->children.push_back( closedNode );
+			}
+			else if( (prevNode->name.length() > 0 && prevNode->name[prevNode->name.length() -1] == '/')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '!')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '?') )
+			{
+				nod.pop_back();
+				nod.back()->children.push_back( prevNode );
+			}
 			return (func_ptr)eat_whitespace;
 			break;
+		}
 		
 		default:
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
 			currTag->name.append(1, currCh);
 			break;
+		}
 	}
 	
 	return (func_ptr)eat_tag_name;
 }
 
 
-func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -93,22 +111,34 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, shared_ptr<no
 		
 		case '>':
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
-				currTag->attributes.push_back(*att);
+				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
-			doc->nodes.push_back( *nod );
-			*nod = nullptr;
+			if( prevNode->name.length() > 0 && prevNode->name[0] == '/' )
+			{
+				nod.pop_back();
+				shared_ptr<tag> closedNode = static_pointer_cast<tag,node>(nod.back());
+				nod.pop_back();
+				nod.back()->children.push_back( closedNode );
+			}
+			else if( (prevNode->name.length() > 0 && prevNode->name[prevNode->name.length() -1] == '/')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '!')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '?') )
+			{
+				nod.pop_back();
+				nod.back()->children.push_back( prevNode );
+			}
 			return (func_ptr)eat_whitespace;
 			break;
 		}
 		
 		default:
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
-				currTag->attributes.push_back(*att);
+				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
 			att->name.append(1, currCh);
@@ -121,7 +151,7 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, shared_ptr<no
 }
 
 
-func_ptr	eat_tag_attr_name( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -138,13 +168,25 @@ func_ptr	eat_tag_attr_name( char currCh, document* doc, shared_ptr<node>* nod, a
 		
 		case '>':
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
-				currTag->attributes.push_back(*att);
+				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
-			doc->nodes.push_back( *nod );
-			*nod = nullptr;
+			if( prevNode->name.length() > 0 && prevNode->name[0] == '/' )
+			{
+				nod.pop_back();
+				shared_ptr<tag> closedNode = static_pointer_cast<tag,node>(nod.back());
+				nod.pop_back();
+				nod.back()->children.push_back( closedNode );
+			}
+			else if( (prevNode->name.length() > 0 && prevNode->name[prevNode->name.length() -1] == '/')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '!')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '?') )
+			{
+				nod.pop_back();
+				nod.back()->children.push_back( prevNode );
+			}
 			return (func_ptr)eat_whitespace;
 			break;
 		}
@@ -159,7 +201,7 @@ func_ptr	eat_tag_attr_name( char currCh, document* doc, shared_ptr<node>* nod, a
 }
 
 
-func_ptr	eat_tag_attr_value( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -188,15 +230,15 @@ func_ptr	eat_tag_attr_value( char currCh, document* doc, shared_ptr<node>* nod, 
 }
 
 
-func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
 		case '"':
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
-				currTag->attributes.push_back(*att);
+				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
 			return (func_ptr)eat_tag_attr_name;
@@ -213,7 +255,7 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, shared_ptr<node>
 }
 
 
-func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, shared_ptr<node>* nod, attribute* att )
+func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -222,7 +264,7 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, shared_ptr<nod
 		case '\r':
 		case '\n':
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
 				currTag->attributes.push_back(*att);
 			att->name.erase();
@@ -238,13 +280,25 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, shared_ptr<nod
 		
 		case '>':
 		{
-			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(*nod);
+			shared_ptr<tag> prevNode = static_pointer_cast<tag,node>(nod.back());
 			if( att->name.size() > 0 )
-				currTag->attributes.push_back(*att);
+				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
-			doc->nodes.push_back( *nod );
-			*nod = nullptr;
+			if( prevNode->name.length() > 0 && prevNode->name[0] == '/' )
+			{
+				nod.pop_back();
+				shared_ptr<tag> closedNode = static_pointer_cast<tag,node>(nod.back());
+				nod.pop_back();
+				nod.back()->children.push_back( closedNode );
+			}
+			else if( (prevNode->name.length() > 0 && prevNode->name[prevNode->name.length() -1] == '/')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '!')
+					|| (prevNode->name.length() > 0 && prevNode->name[0] == '?') )
+			{
+				nod.pop_back();
+				nod.back()->children.push_back( prevNode );
+			}
 			return (func_ptr)eat_whitespace;
 			break;
 		}
@@ -261,19 +315,17 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, shared_ptr<nod
 
 document::document( const char* inString, size_t inLength )
 {
-	shared_ptr<node>	nod;
-	attribute			att;
-	eat_char_fcn		state = eat_whitespace;
-	size_t				x = 0;
+	vector<shared_ptr<node>>	nod;
+	nod.push_back( shared_ptr<node>(new tag) );
+	attribute					att;
+	eat_char_fcn				state = eat_whitespace;
+	size_t						x = 0;
 	while( (x < inLength) && state )
 	{
-		state = (eat_char_fcn)state( inString[x++], this, &nod, &att );
+		state = (eat_char_fcn)state( inString[x++], this, nod, &att );
 	}
 	
-	for( auto node : nodes )
-	{
-		node->print();
-	}
+	nod.back()->print();
 }
 
 
@@ -284,5 +336,10 @@ void	tag::print()
 	{
 		cout << " [" << att.name << "]=\"" << att.value << "\"";
 	}
-	cout << ">]";
+	cout << ">]{";
+	
+	for( auto child : children )
+		child->print();
+	
+	cout << "}";
 }
