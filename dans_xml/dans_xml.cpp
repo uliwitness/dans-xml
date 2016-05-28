@@ -8,6 +8,7 @@
 
 #include "dans_xml.hpp"
 #include <iostream>
+#include <map>
 
 
 using namespace std;
@@ -25,6 +26,8 @@ func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>
 func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
 func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
 func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
 
 
 func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
@@ -45,6 +48,10 @@ func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& n
 			break;
 		}
 		
+		case '&':
+			return (func_ptr)eat_entity_chars;
+			break;
+		
 		default:
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
@@ -55,6 +62,40 @@ func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& n
 			}
 			theNode->text.append(1,currCh);
 			return (func_ptr)eat_text_chars;
+			break;
+		}
+	}
+	
+	return nullptr;
+}
+
+
+func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+{
+	static std::string	sEntityName;
+	static std::map<std::string,std::string>	sEntities;
+	if( sEntities.size() == 0 )
+	{
+		sEntities["lt"] = "<";
+		sEntities["gt"] = ">";
+		sEntities["amp"] = "&";
+	}
+	
+	switch( currCh )
+	{
+		case ';':
+		{
+			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
+			theNode->text.append(sEntities[sEntityName]);
+			sEntityName.erase();
+			return (func_ptr)eat_text_chars;
+			break;
+		}
+		
+		default:
+		{
+			sEntityName.append(1,currCh);
+			return (func_ptr)eat_entity_chars;
 			break;
 		}
 	}
