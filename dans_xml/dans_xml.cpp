@@ -60,7 +60,7 @@ func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node
 				theNode = make_shared<text>();
 				nod.push_back( theNode );
 			}
-			theNode->text.append(1,currCh);
+			theNode->actualText.append(1,currCh);
 			return (func_ptr)eat_text_chars;
 			break;
 		}
@@ -85,7 +85,7 @@ func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<no
 		case ';':
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
-			theNode->text.append(sEntities[reader.currEntityName]);
+			theNode->actualText.append(sEntities[reader.currEntityName]);
 			reader.currEntityName.erase();
 			return (func_ptr)eat_text_chars;
 			break;
@@ -118,7 +118,7 @@ func_ptr	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vect
 		case ';':
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
-			theNode->text.append(sEntities[reader.currEntityName]);
+			theNode->actualText.append(sEntities[reader.currEntityName]);
 			reader.currEntityName.erase();
 			return (func_ptr)eat_text_chars;
 			break;
@@ -599,13 +599,45 @@ void	tag::print( size_t depth )
 }
 
 
+void	tag::set_attribute( const std::string& inName, const std::string inValue )
+{
+	for( attribute& currAttr : attributes )
+	{
+		if( strcasecmp(currAttr.name.c_str(),inName.c_str()) == 0 )
+		{
+			currAttr.value = inValue;
+			return;
+		}
+	}
+	
+	attribute	newAttr;
+	newAttr.name = inName;
+	newAttr.value = inValue;
+	attributes.push_back( newAttr );
+}
+
+
+std::string	tag::get_attribute( const std::string& inName, const std::string& inDefault )
+{
+	for( attribute& currAttr : attributes )
+	{
+		if( strcasecmp(currAttr.name.c_str(),inName.c_str()) == 0 )
+		{
+			return currAttr.value;
+		}
+	}
+	
+	return inDefault;
+}
+
+
 void	text::write( writer* inWriter, size_t depth )
 {
 	std::string	currText;
-	size_t	len = text.length();
+	size_t	len = actualText.length();
 	for( size_t x = 0; x < len; x++ )
 	{
-		char	currCh = text[x];
+		char	currCh = actualText[x];
 		switch( currCh )
 		{
 			case '<':
@@ -631,10 +663,10 @@ void	text::write( writer* inWriter, size_t depth )
 
 void	text::print( size_t depth )
 {
-	size_t	len = text.length();
+	size_t	len = actualText.length();
 	for( size_t x = 0; x < len; x++ )
 	{
-		char	currCh = text[x];
+		char	currCh = actualText[x];
 		switch( currCh )
 		{
 			case '<':

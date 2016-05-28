@@ -36,10 +36,13 @@ namespace dans_xml
 	class text : public node
 	{
 	public:
+		text()	{}
+		explicit text( const std::string& inStr ) : actualText(inStr) {}
+		
 		virtual void	write( writer* inWriter, size_t depth );
 		virtual void	print( size_t depth );
 
-		std::string		text;
+		std::string		actualText;
 	};
 	
 	
@@ -54,8 +57,14 @@ namespace dans_xml
 	class tag : public node
 	{
 	public:
+		tag() {}
+		explicit tag( const std::string& inName ) : name(inName) {}
+		
 		virtual void	write( writer* inWriter, size_t depth );
 		virtual void	print( size_t depth );
+		
+		virtual void		set_attribute( const std::string& inName, const std::string inValue );
+		virtual std::string	get_attribute( const std::string& inName, const std::string& inDefault = "" );
 		
 		std::string				name;
 		std::vector<attribute>	attributes;
@@ -72,6 +81,7 @@ namespace dans_xml
 		std::vector<std::shared_ptr<node>>	nodes;
 		std::string							currEntityName;
 	};
+	
 	
 	class writer
 	{
