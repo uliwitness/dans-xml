@@ -17,20 +17,20 @@ using namespace dans_xml;
 
 typedef void (*func_ptr)();
 
-typedef func_ptr (*eat_char_fcn)( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );	// Returns another function of its type.
+typedef func_ptr (*eat_char_fcn)( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );	// Returns another function of its type.
 
 
-func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
 
 
-func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -70,7 +70,7 @@ func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& n
 }
 
 
-func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	static std::map<std::string,std::string>	sEntities;
 	if( sEntities.size() == 0 )
@@ -85,15 +85,15 @@ func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>&
 		case ';':
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
-			theNode->text.append(sEntities[doc->currEntityName]);
-			doc->currEntityName.erase();
+			theNode->text.append(sEntities[reader.currEntityName]);
+			reader.currEntityName.erase();
 			return (func_ptr)eat_text_chars;
 			break;
 		}
 		
 		default:
 		{
-			doc->currEntityName.append(1,currCh);
+			reader.currEntityName.append(1,currCh);
 			return (func_ptr)eat_entity_chars;
 			break;
 		}
@@ -103,7 +103,7 @@ func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>&
 }
 
 
-func_ptr	eat_tag_attr_value_quoted_entity( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	static std::map<std::string,std::string>	sEntities;
 	if( sEntities.size() == 0 )
@@ -118,15 +118,15 @@ func_ptr	eat_tag_attr_value_quoted_entity( char currCh, document* doc, vector<sh
 		case ';':
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
-			theNode->text.append(sEntities[doc->currEntityName]);
-			doc->currEntityName.erase();
+			theNode->text.append(sEntities[reader.currEntityName]);
+			reader.currEntityName.erase();
 			return (func_ptr)eat_text_chars;
 			break;
 		}
 		
 		default:
 		{
-			doc->currEntityName.append(1,currCh);
+			reader.currEntityName.append(1,currCh);
 			return (func_ptr)eat_tag_attr_value_quoted;
 			break;
 		}
@@ -136,7 +136,7 @@ func_ptr	eat_tag_attr_value_quoted_entity( char currCh, document* doc, vector<sh
 }
 
 
-func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -157,7 +157,7 @@ func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& n
 		}
 		
 		default:
-			return eat_text_chars( currCh, doc, nod, att );
+			return eat_text_chars( currCh, reader, nod, att );
 			break;
 	}
 	
@@ -165,7 +165,7 @@ func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& n
 }
 
 
-func_ptr	eat_tag_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -209,7 +209,7 @@ func_ptr	eat_tag_name( char currCh, document* doc, vector<shared_ptr<node>>& nod
 }
 
 
-func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -266,7 +266,7 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, document* doc, vector<shared
 }
 
 
-func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -316,7 +316,7 @@ func_ptr	eat_tag_attr_name( char currCh, document* doc, vector<shared_ptr<node>>
 }
 
 
-func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -345,7 +345,7 @@ func_ptr	eat_tag_attr_value( char currCh, document* doc, vector<shared_ptr<node>
 }
 
 
-func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -374,7 +374,7 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_pt
 }
 
 
-func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -432,33 +432,42 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_
 }
 
 
-document::document( const char* inString, size_t inLength )
+xml_reader::xml_reader( document& inDoc, const char* inString, size_t inLength )
+	: doc(inDoc)
 {
 	vector<shared_ptr<node>>	nod;
-	root = shared_ptr<node>(new node);
-	nod.push_back( root );
+	inDoc.root = shared_ptr<node>(new node);
+	nod.push_back( inDoc.root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
 	size_t						x = 0;
 	while( (x < inLength) && state )
 	{
-		state = (eat_char_fcn)state( inString[x++], this, nod, &att );
+		state = (eat_char_fcn)state( inString[x++], *this, nod, &att );
 	}
 }
 
 
-document::document( FILE* inFile )
+xml_reader::xml_reader( document& inDoc, FILE* inFile )
+: doc(inDoc)
 {
 	vector<shared_ptr<node>>	nod;
-	root = shared_ptr<node>(new node);
-	nod.push_back( root );
+	inDoc.root = shared_ptr<node>(new node);
+	nod.push_back( inDoc.root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
 	while( feof(inFile) != 0 && state )
 	{
-		state = (eat_char_fcn)state( fgetc(inFile), this, nod, &att );
+		state = (eat_char_fcn)state( fgetc(inFile), *this, nod, &att );
 	}
 }
+
+
+document::document()
+{
+	root = shared_ptr<node>(new node);
+}
+
 
 void	document::write( writer* inWriter )
 {

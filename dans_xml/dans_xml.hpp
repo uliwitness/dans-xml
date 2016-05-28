@@ -17,6 +17,8 @@
 namespace dans_xml
 {
 	class writer;
+	class document;
+	
 	
 	class node
 	{
@@ -60,6 +62,17 @@ namespace dans_xml
 	};
 	
 	
+	class xml_reader
+	{
+	public:
+		xml_reader( document& inDoc, const char* inString, size_t inLength );
+		xml_reader( document& inDoc, FILE* inFile );
+		
+		document&							doc;
+		std::vector<std::shared_ptr<node>>	nodes;
+		std::string							currEntityName;
+	};
+	
 	class writer
 	{
 	public:
@@ -101,14 +114,11 @@ namespace dans_xml
 	class document
 	{
 	public:
-		document( const char* inString, size_t inLength );
-		document( FILE* inFile );
+		document();
 		
 		virtual void	write( writer* inWriter );
 		
-		std::vector<std::shared_ptr<node>>	nodes;
 		std::shared_ptr<node>				root;
-		std::string							currEntityName;
 	};
 	
 } /* namespace dans_xml */
