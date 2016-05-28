@@ -445,6 +445,27 @@ void	tag::print()
 
 void	text::print()
 {
-	cout << "«" << text << "»";
+	size_t	len = text.length();
+	for( size_t x = 0; x < len; x++ )
+	{
+		char	currCh = text[x];
+		switch( currCh )
+		{
+			case '<':
+				cout << "&lt;";
+				break;
+			
+			case '>':
+				cout << "&gt;";
+				break;
+			
+			case '&':
+				cout << "&amp;";
+				break;
+			
+			default:
+				cout << currCh;
+		}
+	}
 }
 
