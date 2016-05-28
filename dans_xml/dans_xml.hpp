@@ -29,6 +29,15 @@ namespace dans_xml
 	};
 	
 	
+	class text : public node
+	{
+	public:
+		virtual void	print();
+
+		std::string		text;
+	};
+	
+	
 	class attribute
 	{
 	public:

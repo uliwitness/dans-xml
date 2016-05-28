@@ -27,6 +27,41 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_pt
 func_ptr	eat_tag_attr_value_unquoted( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att );
 
 
+func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+{
+	switch( currCh )
+	{
+		case '<':
+		{
+			shared_ptr<text> textNode = dynamic_pointer_cast<text,node>(nod.back());
+			if( textNode )
+			{
+				nod.pop_back();
+				nod.back()->children.push_back(textNode);
+			}
+			shared_ptr<node>	theNode = make_shared<tag>();
+			nod.push_back( theNode );
+			return (func_ptr)eat_tag_name;
+			break;
+		}
+		
+		default:
+		{
+			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
+			if( !theNode )
+			{
+				theNode = make_shared<text>();
+				nod.push_back( theNode );
+			}
+			theNode->text.append(1,currCh);
+			return (func_ptr)eat_text_chars;
+			break;
+		}
+	}
+	
+	return nullptr;
+}
+
 
 func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
@@ -37,16 +72,23 @@ func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& n
 		case '\r':
 		case '\n':
 			// Just skip.
+			return (func_ptr)eat_whitespace;
 			break;
 		
 		case '<':
+		{
 			shared_ptr<node>	theNode = make_shared<tag>();
 			nod.push_back( theNode );
 			return (func_ptr)eat_tag_name;
 			break;
+		}
+		
+		default:
+			return eat_text_chars( currCh, doc, nod, att );
+			break;
 	}
 	
-	return (func_ptr)eat_whitespace;
+	return nullptr;
 }
 
 
@@ -343,3 +385,10 @@ void	tag::print()
 	
 	cout << "}";
 }
+
+
+void	text::print()
+{
+	cout << "«" << text << "»";
+}
+
