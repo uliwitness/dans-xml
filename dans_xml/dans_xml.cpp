@@ -103,6 +103,39 @@ func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>&
 }
 
 
+func_ptr	eat_tag_attr_value_quoted_entity( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
+{
+	static std::map<std::string,std::string>	sEntities;
+	if( sEntities.size() == 0 )
+	{
+		sEntities["lt"] = "<";
+		sEntities["gt"] = ">";
+		sEntities["amp"] = "&";
+	}
+	
+	switch( currCh )
+	{
+		case ';':
+		{
+			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
+			theNode->text.append(sEntities[doc->currEntityName]);
+			doc->currEntityName.erase();
+			return (func_ptr)eat_text_chars;
+			break;
+		}
+		
+		default:
+		{
+			doc->currEntityName.append(1,currCh);
+			return (func_ptr)eat_tag_attr_value_quoted;
+			break;
+		}
+	}
+	
+	return nullptr;
+}
+
+
 func_ptr	eat_whitespace( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
@@ -326,6 +359,10 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, document* doc, vector<shared_pt
 			return (func_ptr)eat_tag_attr_name;
 			break;
 		}
+		
+		case '&':
+			return (func_ptr)eat_tag_attr_value_quoted_entity;
+			break;
 		
 		default:
 			att->value.append( 1, currCh );
