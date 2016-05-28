@@ -72,7 +72,6 @@ func_ptr	eat_text_chars( char currCh, document* doc, vector<shared_ptr<node>>& n
 
 func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>& nod, attribute* att )
 {
-	static std::string	sEntityName;
 	static std::map<std::string,std::string>	sEntities;
 	if( sEntities.size() == 0 )
 	{
@@ -86,15 +85,15 @@ func_ptr	eat_entity_chars( char currCh, document* doc, vector<shared_ptr<node>>&
 		case ';':
 		{
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
-			theNode->text.append(sEntities[sEntityName]);
-			sEntityName.erase();
+			theNode->text.append(sEntities[doc->currEntityName]);
+			doc->currEntityName.erase();
 			return (func_ptr)eat_text_chars;
 			break;
 		}
 		
 		default:
 		{
-			sEntityName.append(1,currCh);
+			doc->currEntityName.append(1,currCh);
 			return (func_ptr)eat_entity_chars;
 			break;
 		}

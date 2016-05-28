@@ -61,6 +61,7 @@ namespace dans_xml
 		document( const char* inString, size_t inLength );
 		
 		std::vector<std::shared_ptr<node>>	nodes;
+		std::string							currEntityName;
 	};
 	
 } /* namespace dans_xml */
