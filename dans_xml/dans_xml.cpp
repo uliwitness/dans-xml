@@ -444,19 +444,19 @@ document::document( const char* inString, size_t inLength )
 		state = (eat_char_fcn)state( inString[x++], this, nod, &att );
 	}
 	
-	nod.back()->print();
+	nod.back()->print(0);
 }
 
 
-void	node::print()
+void	node::print( size_t depth )
 {
 	for( auto child : children )
-		child->print();
+		child->print( depth );
 }
 
 
 
-void	tag::print()
+void	tag::print( size_t depth )
 {
 	cout << "<" << name;
 	for( const attribute& att : attributes )
@@ -472,14 +472,14 @@ void	tag::print()
 	{
 		cout << ">";
 		
-		node::print();
+		node::print( depth +1 );
 		
 		cout << "</" << name << ">";
 	}
 }
 
 
-void	text::print()
+void	text::print( size_t depth )
 {
 	size_t	len = text.length();
 	for( size_t x = 0; x < len; x++ )

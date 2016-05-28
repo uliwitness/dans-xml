@@ -22,7 +22,7 @@ namespace dans_xml
 	public:
 		virtual ~node()	{}
 		
-		virtual void	print();
+		virtual void	print( size_t depth );
 		
 		std::weak_ptr<node>					parent;
 		std::vector<std::shared_ptr<node>>	children;
@@ -32,7 +32,7 @@ namespace dans_xml
 	class text : public node
 	{
 	public:
-		virtual void	print();
+		virtual void	print( size_t depth );
 
 		std::string		text;
 	};
@@ -49,7 +49,7 @@ namespace dans_xml
 	class tag : public node
 	{
 	public:
-		virtual void	print();
+		virtual void	print( size_t depth );
 		
 		std::string				name;
 		std::vector<attribute>	attributes;
