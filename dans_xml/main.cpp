@@ -8,9 +8,23 @@
 
 #include <iostream>
 #include "dans_xml.hpp"
+#include "dans_binary.hpp"
 
 using namespace dans_xml;
 using namespace std;
+
+
+string	path_next_to( string newFilename, string thePath )
+{
+	string::size_type slashPos = thePath.rfind( '/' );
+	if( slashPos != string::npos )
+		thePath = thePath.substr( 0, slashPos +1 );
+	else
+		thePath.erase();
+	thePath.append( newFilename );
+	
+	return thePath;
+}
 
 
 int main( int argc, const char * argv[] )
@@ -45,7 +59,27 @@ int main( int argc, const char * argv[] )
 	xml_writer	newWriter( stdout );
 	newDoc.write( &newWriter );
 
+	string		thePath = path_next_to( "newDoc.xml", argv[0] );
+	FILE*		theXMLFile = fopen( thePath.c_str(), "w" );
+	xml_writer	newWriter2( theXMLFile );
+	newDoc.write( &newWriter2 );
+	fclose( theXMLFile );
+
 	printf( "\n" );
+	
+	thePath = path_next_to( "newDoc.dnxml", argv[0] );
+	FILE*	theBinaryFile = fopen( thePath.c_str(), "w" );
+	binary_writer	binaryWriter( theBinaryFile );
+	theDoc.write( &binaryWriter );
+	fclose( theBinaryFile );
+	
+	FILE*		theBinaryFile2 = fopen( thePath.c_str(), "r" );
+	document	binDoc;
+	binary_reader	binaryReader( binDoc, theBinaryFile2 );
+	fclose( theBinaryFile2 );
+	
+	xml_writer	newWriter3( stdout );
+	binDoc.write( &newWriter3 );
 
     return 0;
 }

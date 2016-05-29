@@ -495,18 +495,42 @@ void	xml_writer::write_bool( bool inValue, size_t depth )
 
 void	xml_writer::write_string( const std::string& inStr, size_t depth )
 {
-	output( inStr );
+	std::string	currText;
+	size_t	len = inStr.length();
+	for( size_t x = 0; x < len; x++ )
+	{
+		char	currCh = inStr[x];
+		switch( currCh )
+		{
+			case '<':
+				currText.append( "&lt;" );
+				break;
+				
+			case '>':
+				currText.append( "&gt;" );
+				break;
+				
+			case '&':
+				currText.append( "&amp;" );
+				break;
+				
+			default:
+				currText.append( 1, currCh );
+		}
+	}
+	
+	output( currText );
 }
 
 
-void	xml_writer::write_open_tag_before_attributes( const std::string& inTagName, size_t numChildren, size_t depth )
+void	xml_writer::write_open_tag_before_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth )
 {
 	output( "<" );
 	output( inTagName );
 }
 
 
-void	xml_writer::write_open_tag_after_attributes( const std::string& inTagName, size_t numChildren, size_t depth )
+void	xml_writer::write_open_tag_after_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth )
 {
 	if( numChildren == 0 && inTagName.size() != 0 && inTagName[0] != '!' && inTagName[0] != '?' )
 		output( " />" );
@@ -562,13 +586,13 @@ void	node::print( size_t depth )
 void	tag::write( writer* inWriter, size_t depth )
 {
 	size_t numChildren = children.size();
-	inWriter->write_open_tag_before_attributes( name, numChildren, depth );
+	inWriter->write_open_tag_before_attributes( name, attributes.size(), numChildren, depth );
 	for( const attribute& att : attributes )
 	{
 		inWriter->write_attribute( att.name, att.value );
 	}
 	
-	inWriter->write_open_tag_after_attributes( name, numChildren, depth );
+	inWriter->write_open_tag_after_attributes( name, attributes.size(), numChildren, depth );
 	
 	node::write( inWriter, depth +1 );
 		
@@ -633,31 +657,7 @@ std::string	tag::get_attribute( const std::string& inName, const std::string& in
 
 void	text::write( writer* inWriter, size_t depth )
 {
-	std::string	currText;
-	size_t	len = actualText.length();
-	for( size_t x = 0; x < len; x++ )
-	{
-		char	currCh = actualText[x];
-		switch( currCh )
-		{
-			case '<':
-				currText.append( "&lt;" );
-				break;
-				
-			case '>':
-				currText.append( "&gt;" );
-				break;
-				
-			case '&':
-				currText.append( "&amp;" );
-				break;
-				
-			default:
-				currText.append( 1, currCh );
-		}
-	}
-	
-	inWriter->write_string( currText, depth );
+	inWriter->write_string( actualText, depth );
 }
 
 

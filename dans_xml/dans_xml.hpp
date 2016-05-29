@@ -92,8 +92,8 @@ namespace dans_xml
 		virtual	void	write_integer( long long inNum, size_t depth ) = 0;
 		virtual	void	write_bool( bool inValue, size_t depth ) = 0;
 		virtual	void	write_string( const std::string& inStr, size_t depth ) = 0;
-		virtual void	write_open_tag_before_attributes( const std::string& inTagName, size_t numChildren, size_t depth ) = 0;
-		virtual void	write_open_tag_after_attributes( const std::string& inTagName, size_t numChildren, size_t depth ) = 0;
+		virtual void	write_open_tag_before_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth ) = 0;
+		virtual void	write_open_tag_after_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth ) = 0;
 		virtual void	write_attribute( const std::string& inName, const std::string& inValue ) = 0;
 		virtual void	write_close_tag( const std::string& inTagName, size_t numChildren, size_t depth ) = 0;
 	};
@@ -105,13 +105,13 @@ namespace dans_xml
 		xml_writer( FILE* inFile ) : file(inFile), outStr(nullptr) {}
 		xml_writer( std::string& outXmlString ) : file(nullptr), outStr(&outXmlString) {}
 		
-		virtual	void	write_integer( long long inNum, size_t depth );
-		virtual	void	write_bool( bool inValue, size_t depth );
-		virtual	void	write_string( const std::string& inStr, size_t depth );
-		virtual void	write_open_tag_before_attributes( const std::string& inTagName, size_t numChildren, size_t depth );
-		virtual void	write_open_tag_after_attributes( const std::string& inTagName, size_t numChildren, size_t depth );
-		virtual void	write_attribute( const std::string& inName, const std::string& inValue );
-		virtual void	write_close_tag( const std::string& inTagName, size_t numChildren, size_t depth );
+		virtual	void	write_integer( long long inNum, size_t depth ) override;
+		virtual	void	write_bool( bool inValue, size_t depth ) override;
+		virtual	void	write_string( const std::string& inStr, size_t depth ) override;
+		virtual void	write_open_tag_before_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth ) override;
+		virtual void	write_open_tag_after_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth ) override;
+		virtual void	write_attribute( const std::string& inName, const std::string& inValue ) override;
+		virtual void	write_close_tag( const std::string& inTagName, size_t numChildren, size_t depth ) override;
 		
 	protected:
 		virtual void	output( const std::string& inStr );

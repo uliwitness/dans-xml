@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		554333FF1CFA3E6A00FF643A /* dans_binary.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 554333FD1CFA3E6A00FF643A /* dans_binary.cpp */; };
 		55A801471CF9261300C44356 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A801461CF9261300C44356 /* main.cpp */; };
 		55A8014F1CF9266100C44356 /* dans_xml.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55A8014D1CF9266100C44356 /* dans_xml.cpp */; };
 /* End PBXBuildFile section */
@@ -24,6 +25,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		554333FD1CFA3E6A00FF643A /* dans_binary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dans_binary.cpp; sourceTree = "<group>"; };
+		554333FE1CFA3E6A00FF643A /* dans_binary.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = dans_binary.hpp; sourceTree = "<group>"; };
 		55A801431CF9261300C44356 /* dans_xml */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dans_xml; sourceTree = BUILT_PRODUCTS_DIR; };
 		55A801461CF9261300C44356 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		55A8014D1CF9266100C44356 /* dans_xml.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = dans_xml.cpp; sourceTree = "<group>"; };
@@ -63,6 +66,8 @@
 				55A801461CF9261300C44356 /* main.cpp */,
 				55A8014E1CF9266100C44356 /* dans_xml.hpp */,
 				55A8014D1CF9266100C44356 /* dans_xml.cpp */,
+				554333FE1CFA3E6A00FF643A /* dans_binary.hpp */,
+				554333FD1CFA3E6A00FF643A /* dans_binary.cpp */,
 			);
 			path = dans_xml;
 			sourceTree = "<group>";
@@ -125,6 +130,7 @@
 			files = (
 				55A801471CF9261300C44356 /* main.cpp in Sources */,
 				55A8014F1CF9266100C44356 /* dans_xml.cpp in Sources */,
+				554333FF1CFA3E6A00FF643A /* dans_binary.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,6 +251,7 @@
 				55A8014C1CF9261300C44356 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
