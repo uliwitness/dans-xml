@@ -26,8 +26,8 @@ namespace dans_xml
 		STRING8,			// String by table index specified in an 8-bit unsigned integer.
 		NEWEMPTYTAG8,		// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer.
 		EMPTYTAG8,			// Tag by string table index specified in an 8-bit unsigned integer.
-		NEWTAG8,			// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
-		TAG8,				// String by string table index specified in an 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
+		NEWTAG8,			// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes, followed by a 8-bit unsigned integer count and that many child nodes.
+		TAG8,				// String by string table index specified in an 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes, followed by a 8-bit unsigned integer count and that many child nodes.
 	};
 	typedef uint8_t	data_type;
 	

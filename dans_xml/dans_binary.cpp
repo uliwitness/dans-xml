@@ -160,6 +160,10 @@ binary_reader::binary_reader( document& inDoc, FILE* inFile )
 	INITIAL_STRING_TABLE
 #undef X
 	
+	fseek( file, 0, SEEK_END);
+	long	pos = ftell(file);
+	rewind(file);
+
 	uint8_t	numDefaults = read_typed<uint8_t>();
 	if( numDefaults > stringTable.size() )
 		return;	// Newer format, don't know what to use for the new string keys.
@@ -167,7 +171,7 @@ binary_reader::binary_reader( document& inDoc, FILE* inFile )
 		stringTable.resize(numDefaults);// Discard the newer ones we know, so the document-defined indexes match.
 	
 	inDoc.root = make_shared<node>();
-	while( feof(inFile) == 0 )
+	while( ftell(file) != pos )
 		read_one_tag( inDoc.root, read_typed<data_type>() );
 }
 
@@ -176,7 +180,7 @@ template<class T>
 T	binary_reader::read_typed()
 {
 	T	type = 0;
-	fread( &type, sizeof(type), 1, file );
+	size_t numRead = fread( &type, sizeof(type), 1, file );
 	return type;
 }
 
@@ -192,6 +196,8 @@ std::string	binary_reader::read_one_string( bool *outSuccess, data_type tagType 
 		case NEWSTRING8:
 		{
 			uint8_t	len = read_typed<uint8_t>();
+			if( len == 1 )
+				printf("");
 			tagName.resize(len);
 			fread( &(tagName[0]), 1, len, file );
 			stringTable.push_back(tagName);
