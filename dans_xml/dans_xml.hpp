@@ -128,6 +128,8 @@ namespace dans_xml
 		
 		virtual void	write( writer* inWriter );
 		
+		void	add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD );
+		
 		std::shared_ptr<node>				root;
 	};
 	

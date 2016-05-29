@@ -206,6 +206,15 @@ eat_char_fcn	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<no
 			break;
 		}
 		
+		// Ignore ending "?" before > in ?xml tag:
+		case '?':
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
+			if( currTag->name.size() == 0 )
+				currTag->name.append(1, currCh);
+			break;
+		}
+		
 		default:
 		{
 			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
@@ -257,6 +266,11 @@ eat_char_fcn	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vect
 			return eat_whitespace;
 			break;
 		}
+		
+		// Ignore ending "?" before > in ?xml tag:
+		case '?':
+			return eat_tag_attr_name_whitespace;
+			break;
 		
 		default:
 		{
@@ -315,6 +329,11 @@ eat_char_fcn	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_p
 			break;
 		}
 		
+		// Ignore ending "?" before > in ?xml tag:
+		case '?':
+			return eat_tag_attr_name;
+			break;
+		
 		default:
 			att->name.append(1, currCh);
 			return eat_tag_attr_name;
@@ -341,6 +360,10 @@ eat_char_fcn	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_
 			break;
 		
 		case '>':
+			return nullptr;
+			break;
+			
+		case '?':
 			return nullptr;
 			break;
 		
@@ -430,6 +453,10 @@ eat_char_fcn	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vecto
 			return eat_whitespace;
 			break;
 		}
+			
+		case '?':
+			return eat_tag_attr_value_unquoted;
+			break;
 		
 		default:
 			att->value.append( 1, currCh );
@@ -475,6 +502,20 @@ xml_reader::xml_reader( document& inDoc, FILE* inFile )
 document::document()
 {
 	root = make_shared<node>();
+}
+
+
+void	document::add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD )
+{
+	shared_ptr<tag>	xmlTag = make_shared<tag>("?xml");
+	xmlTag->set_attribute( "version", "1.0" );
+	xmlTag->set_attribute( "encoding", "utf-8" );
+	shared_ptr<tag>	doctypeTag = make_shared<tag>("!DOCTYPE");
+	doctypeTag->set_attribute( inType, "" );
+	doctypeTag->set_attribute( "PUBLIC", "" );
+	vector<shared_ptr<node>>::iterator nextPos = root->children.begin();
+	nextPos = root->children.insert( nextPos, xmlTag ) +1;
+	nextPos = root->children.insert( nextPos, doctypeTag ) +1;
 }
 
 
@@ -541,7 +582,9 @@ void	xml_writer::write_open_tag_before_attributes( const std::string& inTagName,
 
 void	xml_writer::write_open_tag_after_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth )
 {
-	if( numChildren == 0 && inTagName.size() != 0 && inTagName[0] != '!' && inTagName[0] != '?' )
+	if( numChildren == 0 && inTagName.size() != 0 && inTagName[0] == '?' )
+		output( "?>" );
+	else if( numChildren == 0 && inTagName.size() != 0 && inTagName[0] != '!' )
 		output( " />" );
 	else
 		output( ">" );

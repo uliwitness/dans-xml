@@ -30,7 +30,7 @@ string	path_next_to( string newFilename, string thePath )
 int main( int argc, const char * argv[] )
 {
 	printf( "=== Parse XML from a string & print it out:\n" );
-	const char*		str = "<!DOCTYPE foo=bar thing silly=\"good thing\">\n<html>\n<head>\n<title>This &lt;may&gt; be neat</title>\n</head>\n<body bgcolor = \"#ffeeff\" border = 1></body></html>";
+	const char*		str = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!DOCTYPE foo=bar thing silly=\"good thing\">\n<html>\n<head>\n<title>This &lt;may&gt; be neat</title>\n</head>\n<body bgcolor = \"#ffeeff\" border = 1></body></html>";
 	document		theDoc;
 	xml_reader	theReader( theDoc, str,strlen(str) );
 	
@@ -40,11 +40,7 @@ int main( int argc, const char * argv[] )
 	printf( "\n\n=== Build XML in memory and print it out:\n" );
 	
 	document	newDoc;
-	shared_ptr<tag>	doctype = make_shared<tag>("!DOCTYPE");
-	doctype->set_attribute( "foo", "bar" );
-	doctype->set_attribute( "thing", "" );
-	doctype->set_attribute( "silly", "good thing" );
-	newDoc.root->children.push_back( doctype );
+	newDoc.add_xml_and_doctype_tags( "html", "-//W3C.org//DTD xhtml V 2.0//EN");
 	shared_ptr<tag>	html = make_shared<tag>("html");
 	newDoc.root->children.push_back( html );
 	shared_ptr<tag>	head = make_shared<tag>("head");
