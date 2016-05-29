@@ -195,7 +195,7 @@ eat_char_fcn	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<no
 				nod.pop_back();
 				nod.back()->children.push_back( closedNode );
 			}
-			else if( (prevNode->name.length() > 0 && prevNode->name[prevNode->name.length() -1] == '/')
+			else if( prevNode->get_self_closing()
 					|| (prevNode->name.length() > 0 && prevNode->name[0] == '!')
 					|| (prevNode->name.length() > 0 && prevNode->name[0] == '?') )
 			{
@@ -212,6 +212,19 @@ eat_char_fcn	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<no
 			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
 			if( currTag->name.size() == 0 )
 				currTag->name.append(1, currCh);
+			break;
+		}
+		
+		// Ending "/" before > in empty tag:
+		case '/':
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
+			if( currTag->name.size() == 0 )	// Ignore it at start of tag, that just means it's a closing tag.
+				currTag->name.append(1, currCh);
+			else
+			{
+				currTag->set_self_closing(true);
+			}
 			break;
 		}
 		
@@ -271,6 +284,15 @@ eat_char_fcn	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vect
 		case '?':
 			return eat_tag_attr_name_whitespace;
 			break;
+		
+		// Ending "/" before > in empty tag:
+		case '/':
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
+			currTag->set_self_closing(true);
+			return eat_tag_attr_name_whitespace;
+			break;
+		}
 		
 		default:
 		{
@@ -334,6 +356,15 @@ eat_char_fcn	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_p
 			return eat_tag_attr_name;
 			break;
 		
+		// Ending "/" before > in empty tag:
+		case '/':
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
+			currTag->set_self_closing(true);
+			return eat_tag_attr_name;
+			break;
+		}
+		
 		default:
 			att->name.append(1, currCh);
 			return eat_tag_attr_name;
@@ -360,10 +391,8 @@ eat_char_fcn	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_
 			break;
 		
 		case '>':
-			return nullptr;
-			break;
-			
 		case '?':
+		case '/':
 			return nullptr;
 			break;
 		
@@ -458,6 +487,15 @@ eat_char_fcn	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vecto
 			return eat_tag_attr_value_unquoted;
 			break;
 		
+		// Ending "/" before > in empty tag:
+		case '/':
+		{
+			shared_ptr<tag>	currTag = static_pointer_cast<tag,node>(nod.back());
+			currTag->set_self_closing(true);
+			return eat_tag_attr_value_unquoted;
+			break;
+		}
+		
 		default:
 			att->value.append( 1, currCh );
 			return eat_tag_attr_value_unquoted;
@@ -492,7 +530,7 @@ xml_reader::xml_reader( document& inDoc, FILE* inFile )
 	nod.push_back( inDoc.root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
-	while( feof(inFile) != 0 && state )
+	while( (feof(inFile) == 0) && state )
 	{
 		state = (eat_char_fcn)state( fgetc(inFile), *this, nod, &att );
 	}
@@ -505,7 +543,7 @@ document::document()
 }
 
 
-void	document::add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD )
+void	document::add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD, const std::string& inDTDURL )
 {
 	shared_ptr<tag>	xmlTag = make_shared<tag>("?xml");
 	xmlTag->set_attribute( "version", "1.0" );
@@ -513,6 +551,8 @@ void	document::add_xml_and_doctype_tags( const std::string& inType, const std::s
 	shared_ptr<tag>	doctypeTag = make_shared<tag>("!DOCTYPE");
 	doctypeTag->set_attribute( inType, "" );
 	doctypeTag->set_attribute( "PUBLIC", "" );
+	doctypeTag->set_attribute( inDTD, "" );
+	doctypeTag->set_attribute( inDTDURL, "" );
 	vector<shared_ptr<node>>::iterator nextPos = root->children.begin();
 	nextPos = root->children.insert( nextPos, xmlTag ) +1;
 	nextPos = root->children.insert( nextPos, doctypeTag ) +1;
@@ -594,10 +634,18 @@ void	xml_writer::write_open_tag_after_attributes( const std::string& inTagName, 
 void	xml_writer::write_attribute( const std::string& inName, const std::string& inValue )
 {
 	output( " " );
+	bool	containsSpaces = (inName.find(" ") != string::npos) || (inName.size() == 0);
+	if( containsSpaces )
+		output( "\"" );
 	output( inName );
-	output( "=\"" );
-	output( inValue );
-	output( "\"" );
+	if( containsSpaces )
+		output( "\"" );
+	if( inValue.size() )
+	{
+		output( "=\"" );
+		output( inValue );
+		output( "\"" );
+	}
 }
 
 
@@ -706,6 +754,24 @@ std::string	tag::get_attribute( const std::string& inName, const std::string& in
 	return inDefault;
 }
 
+
+shared_ptr<tag>	tag::find_child_named( const std::string& inName, node_iterator searchStart )
+{
+	shared_ptr<tag>	foundChild;
+	
+	for( node_iterator x = searchStart; x != children.end(); x++ )
+	{
+		shared_ptr<tag>	currTag = dynamic_pointer_cast<tag>( *x );
+		if( strcasecmp(currTag->name.c_str(), inName.c_str()) == 0 )
+		{
+			searchStart = x +1;
+			foundChild = currTag;
+			break;
+		}
+	}
+	
+	return foundChild;
+}
 
 void	text::write( writer* inWriter, size_t depth )
 {

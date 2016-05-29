@@ -39,19 +39,23 @@ binary_writer::binary_writer( FILE* outFile )
 }
 
 
+template<class T>
+void	binary_writer::write_typed( T inNum )
+{
+	fwrite( &inNum, sizeof(inNum), 1, file );
+}
+
+
 void	binary_writer::write_integer( long long inNum, size_t depth )
 {
-	uint8_t	type = SINT64;
-	fwrite( &type, sizeof(type), 1, file );
-	int64_t	num = inNum;
-	fwrite( &num, sizeof(num), 1, file );
+	write_typed<data_type>( SINT64 );
+	write_typed<int64_t>( inNum );
 }
 
 
 void	binary_writer::write_bool( bool inValue, size_t depth )
 {
-	uint8_t	type = inValue ? BOOLEAN_TRUE : BOOLEAN_FALSE;
-	fwrite( &type, sizeof(type), 1, file );
+	write_typed<uint8_t>( inValue ? BOOLEAN_TRUE : BOOLEAN_FALSE );
 }
 
 
@@ -79,16 +83,15 @@ void	binary_writer::write_string( const std::string& inStr, size_t depth )
 	bool	isNew = false;
 	size_t	idx = index_for_string( inStr, &isNew );
 	uint8_t	type = isNew ? NEWSTRING8 : STRING8;
-	fwrite( &type, sizeof(type), 1, file );
+	write_typed<typeof(type)>(type);
 	if( !isNew )
 	{
-		uint8_t	strIndex = idx;
-		fwrite( &strIndex, sizeof(strIndex), 1, file );
+		write_typed<uint8_t>(idx);
 	}
 	else
 	{
-		uint8_t	strLen = inStr.size();
-		fwrite( &strLen, sizeof(strLen), 1, file );
+		size_t	strLen = inStr.size();
+		write_typed<uint8_t>(strLen);
 		fwrite( inStr.data(), 1, strLen, file );
 	}
 }
@@ -96,35 +99,43 @@ void	binary_writer::write_string( const std::string& inStr, size_t depth )
 
 void	binary_writer::write_open_tag_before_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth )
 {
-	bool	isNew = false;
-	size_t	idx = index_for_string( inTagName, &isNew );
-	uint8_t	type = isNew ? NEWTAG8 : TAG8;
-	if( numAttributes == 0 )
-		type = isNew ? NEWEMPTYTAG8 : EMPTYTAG8;
-	fwrite( &type, sizeof(type), 1, file );
-	if( !isNew )
+	if( inTagName.compare("true") == 0 && numAttributes == 0 && numChildren == 0 )
 	{
-		uint8_t	strIndex = idx;
-		fwrite( &strIndex, sizeof(strIndex), 1, file );
+		write_typed<uint8_t>( BOOLEAN_TAG_TRUE );
+	}
+	else if( inTagName.compare("false") == 0 && numAttributes == 0 && numChildren == 0 )
+	{
+		write_typed<uint8_t>( BOOLEAN_TAG_FALSE );
 	}
 	else
 	{
-		uint8_t	strLen = inTagName.size();
-		fwrite( &strLen, sizeof(strLen), 1, file );
-		fwrite( inTagName.data(), 1, strLen, file );
-	}
-	if( numAttributes > 0 )
-	{
-		uint8_t	na = numAttributes;
-		fwrite( &na, sizeof(na), 1, file );
+		bool	isNew = false;
+		size_t	idx = index_for_string( inTagName, &isNew );
+		uint8_t	type = isNew ? NEWTAG8 : TAG8;
+		if( numAttributes == 0 )
+			type = isNew ? NEWEMPTYTAG8 : EMPTYTAG8;
+		write_typed<uint8_t>(type);
+		if( !isNew )
+		{
+			write_typed<uint8_t>(idx);
+		}
+		else
+		{
+			uint8_t	strLen = inTagName.size();
+			write_typed<uint8_t>(strLen);
+			fwrite( inTagName.data(), 1, strLen, file );
+		}
+		if( numAttributes > 0 )
+		{
+			write_typed<uint8_t>(numAttributes);
+		}
 	}
 }
 
 
 void	binary_writer::write_open_tag_after_attributes( const std::string& inTagName, size_t numAttributes, size_t numChildren, size_t depth )
 {
-	uint8_t	nc = numChildren;
-	fwrite( &nc, sizeof(nc), 1, file );
+	write_typed<uint8_t>(numChildren);
 }
 
 
@@ -246,6 +257,8 @@ bool	binary_reader::read_one_tag_or_string( shared_ptr<node> parent, data_type t
 		case EMPTYTAG8:
 		case NEWTAG8:
 		case TAG8:
+		case BOOLEAN_TAG_FALSE:
+		case BOOLEAN_TAG_TRUE:
 			read_one_tag( parent, tagType );
 			break;
 		default:
@@ -293,6 +306,12 @@ bool	binary_reader::read_one_tag( shared_ptr<node> parent, data_type tagType )
 			numAttributes = read_typed<uint8_t>();
 			break;
 		}
+		case BOOLEAN_TAG_TRUE:
+			tagName = "true";
+			break;
+		case BOOLEAN_TAG_FALSE:
+			tagName = "false";
+			break;
 		default:
 			return false;	// Invalid file format.
 	}

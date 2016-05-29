@@ -57,7 +57,9 @@ namespace dans_xml
 	class tag : public node
 	{
 	public:
-		tag() {}
+		typedef std::vector<std::shared_ptr<node>>::iterator node_iterator;
+		
+		tag() : self_closing(false) {}
 		explicit tag( const std::string& inName ) : name(inName) {}
 		
 		virtual void	write( writer* inWriter, size_t depth );
@@ -66,8 +68,14 @@ namespace dans_xml
 		virtual void		set_attribute( const std::string& inName, const std::string inValue );
 		virtual std::string	get_attribute( const std::string& inName, const std::string& inDefault = "" );
 		
+		void				set_self_closing( bool inState )	{ self_closing = inState; }
+		bool				get_self_closing()					{ return self_closing; }
+		
+		virtual std::shared_ptr<tag>	find_child_named( const std::string& inName, node_iterator searchStart );
+		
 		std::string				name;
 		std::vector<attribute>	attributes;
+		bool					self_closing;
 	};
 	
 	
@@ -128,7 +136,7 @@ namespace dans_xml
 		
 		virtual void	write( writer* inWriter );
 		
-		void	add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD );
+		void	add_xml_and_doctype_tags( const std::string& inType, const std::string& inDTD, const std::string& inDTDURL );
 		
 		std::shared_ptr<node>				root;
 	};

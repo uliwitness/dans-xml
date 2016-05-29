@@ -17,15 +17,17 @@ namespace dans_xml
 {
 	enum type
 	{
-		BOOLEAN_FALSE,	// Boolean 'false' in an 8-bit integer.
-		BOOLEAN_TRUE,	// Boolean 'true' in an 8-bit integer.
-		SINT64,			// 64-bit signed integer.
-		NEWSTRING8,		// Initial definition of string. Append to table. Size of string is a 8-bit unsigned integer.
-		STRING8,		// String by table index specified in an 8-bit unsigned integer.
-		NEWEMPTYTAG8,	// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer.
-		EMPTYTAG8,		// Tag by string table index specified in an 8-bit unsigned integer.
-		NEWTAG8,		// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
-		TAG8,			// String by string table index specified in an 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
+		BOOLEAN_TAG_FALSE,	// <false /> represented by its own type.
+		BOOLEAN_TAG_TRUE,	// <true /> represented by its own type.
+		BOOLEAN_FALSE,		// false represented by its own type.
+		BOOLEAN_TRUE,		// true represented by its own type.
+		SINT64,				// 64-bit signed integer.
+		NEWSTRING8,			// Initial definition of string. Append to table. Size of string is a 8-bit unsigned integer.
+		STRING8,			// String by table index specified in an 8-bit unsigned integer.
+		NEWEMPTYTAG8,		// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer.
+		EMPTYTAG8,			// Tag by string table index specified in an 8-bit unsigned integer.
+		NEWTAG8,			// Tag plus initial definition of the string that is its name. Size of string is a 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
+		TAG8,				// String by string table index specified in an 8-bit unsigned integer. Followed by a 8-bit unsigned integer count and that many attributes.
 	};
 	typedef uint8_t	data_type;
 	
@@ -44,6 +46,8 @@ namespace dans_xml
 		virtual void	write_close_tag( const std::string& inTagName, size_t numChildren, size_t depth ) override;
 
 		size_t			index_for_string( const std::string& inStr, bool *isNew );
+		template<class T>
+		void			write_typed( T inNum );
 
 		std::map<std::string,size_t>	stringTable;
 		size_t							stringTableIDSeed;
