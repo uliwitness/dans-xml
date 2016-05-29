@@ -55,9 +55,10 @@ namespace dans_xml
 	public:
 		binary_reader( document& inDoc, FILE* inFile );
 		
-		bool		read_one_tag( std::shared_ptr<node> parent );
+		bool		read_one_tag( std::shared_ptr<node> parent, data_type tagType );	// Caller must read_typed<data_type>() the tagType before calling in!
 		bool		read_one_attribute( std::shared_ptr<tag> parent );
-		std::string	read_one_string( bool *outSuccess );
+		std::string	read_one_string( bool *outSuccess, data_type tagType );
+		bool		read_one_tag_or_string( std::shared_ptr<node> parent, data_type tagType );
 		
 		template<class T>
 		T	read_typed();

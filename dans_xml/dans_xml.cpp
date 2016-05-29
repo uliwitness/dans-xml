@@ -15,22 +15,31 @@ using namespace std;
 using namespace dans_xml;
 
 
-typedef void (*func_ptr)();
+// Define a function pointer that returns a function of the same signature as its return value:
+#define RECURSIVE_FUNC_PTR(name,params)	struct eat_char_fcn \
+{ \
+	name( struct name (*inFun)params ) : function(inFun) {} \
+	 \
+	struct name operator()params { return function(currCh,reader,nod,att); } \
+	explicit operator bool() { return function != nullptr; } \
+	 \
+	struct name (*function)params; \
+}
 
-typedef func_ptr (*eat_char_fcn)( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );	// Returns another function of its type.
+// eat_char_fcn is the type of the state variable of our state machine:
+RECURSIVE_FUNC_PTR(eat_char_fcn,( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att ));
+
+eat_char_fcn	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
+eat_char_fcn	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
 
 
-func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att );
-
-
-func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -44,12 +53,12 @@ func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node
 			}
 			shared_ptr<node>	theNode = make_shared<tag>();
 			nod.push_back( theNode );
-			return (func_ptr)eat_tag_name;
+			return eat_tag_name;
 			break;
 		}
 		
 		case '&':
-			return (func_ptr)eat_entity_chars;
+			return eat_entity_chars;
 			break;
 		
 		default:
@@ -61,7 +70,7 @@ func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node
 				nod.push_back( theNode );
 			}
 			theNode->actualText.append(1,currCh);
-			return (func_ptr)eat_text_chars;
+			return eat_text_chars;
 			break;
 		}
 	}
@@ -70,7 +79,7 @@ func_ptr	eat_text_chars( char currCh, xml_reader& reader, vector<shared_ptr<node
 }
 
 
-func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	static std::map<std::string,std::string>	sEntities;
 	if( sEntities.size() == 0 )
@@ -87,14 +96,14 @@ func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<no
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
 			theNode->actualText.append(sEntities[reader.currEntityName]);
 			reader.currEntityName.erase();
-			return (func_ptr)eat_text_chars;
+			return eat_text_chars;
 			break;
 		}
 		
 		default:
 		{
 			reader.currEntityName.append(1,currCh);
-			return (func_ptr)eat_entity_chars;
+			return eat_entity_chars;
 			break;
 		}
 	}
@@ -103,7 +112,7 @@ func_ptr	eat_entity_chars( char currCh, xml_reader& reader, vector<shared_ptr<no
 }
 
 
-func_ptr	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	static std::map<std::string,std::string>	sEntities;
 	if( sEntities.size() == 0 )
@@ -120,14 +129,14 @@ func_ptr	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vect
 			shared_ptr<text> theNode = dynamic_pointer_cast<text,node>(nod.back());
 			theNode->actualText.append(sEntities[reader.currEntityName]);
 			reader.currEntityName.erase();
-			return (func_ptr)eat_text_chars;
+			return eat_text_chars;
 			break;
 		}
 		
 		default:
 		{
 			reader.currEntityName.append(1,currCh);
-			return (func_ptr)eat_tag_attr_value_quoted;
+			return eat_tag_attr_value_quoted;
 			break;
 		}
 	}
@@ -136,7 +145,7 @@ func_ptr	eat_tag_attr_value_quoted_entity( char currCh, xml_reader& reader, vect
 }
 
 
-func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -145,14 +154,14 @@ func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node
 		case '\r':
 		case '\n':
 			// Just skip.
-			return (func_ptr)eat_whitespace;
+			return eat_whitespace;
 			break;
 		
 		case '<':
 		{
 			shared_ptr<node>	theNode = make_shared<tag>();
 			nod.push_back( theNode );
-			return (func_ptr)eat_tag_name;
+			return eat_tag_name;
 			break;
 		}
 		
@@ -165,7 +174,7 @@ func_ptr	eat_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node
 }
 
 
-func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -173,7 +182,7 @@ func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>
 		case '\t':
 		case '\r':
 		case '\n':
-			return (func_ptr)eat_tag_attr_name;
+			return eat_tag_attr_name;
 			break;
 		
 		case '>':
@@ -193,7 +202,7 @@ func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>
 				nod.pop_back();
 				nod.back()->children.push_back( prevNode );
 			}
-			return (func_ptr)eat_whitespace;
+			return eat_whitespace;
 			break;
 		}
 		
@@ -205,11 +214,11 @@ func_ptr	eat_tag_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>
 		}
 	}
 	
-	return (func_ptr)eat_tag_name;
+	return eat_tag_name;
 }
 
 
-func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -217,11 +226,11 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<s
 		case '\t':
 		case '\r':
 		case '\n':
-			return (func_ptr)eat_tag_attr_name_whitespace;
+			return eat_tag_attr_name_whitespace;
 			break;
 		
 		case '=':
-			return (func_ptr)eat_tag_attr_value;
+			return eat_tag_attr_value;
 			break;
 		
 		case '>':
@@ -245,7 +254,7 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<s
 				nod.pop_back();
 				nod.back()->children.push_back( prevNode );
 			}
-			return (func_ptr)eat_whitespace;
+			return eat_whitespace;
 			break;
 		}
 		
@@ -257,7 +266,7 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<s
 			att->name.erase();
 			att->value.erase();
 			att->name.append(1, currCh);
-			return (func_ptr)eat_tag_attr_name;
+			return eat_tag_attr_name;
 			break;
 		}
 	}
@@ -266,7 +275,7 @@ func_ptr	eat_tag_attr_name_whitespace( char currCh, xml_reader& reader, vector<s
 }
 
 
-func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -274,11 +283,11 @@ func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<n
 		case '\t':
 		case '\r':
 		case '\n':
-			return (func_ptr)eat_tag_attr_name_whitespace;
+			return eat_tag_attr_name_whitespace;
 			break;
 		
 		case '=':
-			return (func_ptr)eat_tag_attr_value;
+			return eat_tag_attr_value;
 			break;
 		
 		case '>':
@@ -302,13 +311,13 @@ func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<n
 				nod.pop_back();
 				nod.back()->children.push_back( prevNode );
 			}
-			return (func_ptr)eat_whitespace;
+			return eat_whitespace;
 			break;
 		}
 		
 		default:
 			att->name.append(1, currCh);
-			return (func_ptr)eat_tag_attr_name;
+			return eat_tag_attr_name;
 			break;
 	}
 	
@@ -316,7 +325,7 @@ func_ptr	eat_tag_attr_name( char currCh, xml_reader& reader, vector<shared_ptr<n
 }
 
 
-func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -324,11 +333,11 @@ func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<
 		case '\t':
 		case '\r':
 		case '\n':
-			return (func_ptr)eat_tag_attr_value;
+			return eat_tag_attr_value;
 			break;
 		
 		case '"':
-			return (func_ptr)eat_tag_attr_value_quoted;
+			return eat_tag_attr_value_quoted;
 			break;
 		
 		case '>':
@@ -337,7 +346,7 @@ func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<
 		
 		default:
 			att->value.append(1,currCh);
-			return (func_ptr)eat_tag_attr_value_unquoted;
+			return eat_tag_attr_value_unquoted;
 			break;
 	}
 	
@@ -345,7 +354,7 @@ func_ptr	eat_tag_attr_value( char currCh, xml_reader& reader, vector<shared_ptr<
 }
 
 
-func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -356,17 +365,17 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shar
 				prevNode->attributes.push_back(*att);
 			att->name.erase();
 			att->value.erase();
-			return (func_ptr)eat_tag_attr_name;
+			return eat_tag_attr_name;
 			break;
 		}
 		
 		case '&':
-			return (func_ptr)eat_tag_attr_value_quoted_entity;
+			return eat_tag_attr_value_quoted_entity;
 			break;
 		
 		default:
 			att->value.append( 1, currCh );
-			return (func_ptr)eat_tag_attr_value_quoted;
+			return eat_tag_attr_value_quoted;
 			break;
 	}
 	
@@ -374,7 +383,7 @@ func_ptr	eat_tag_attr_value_quoted( char currCh, xml_reader& reader, vector<shar
 }
 
 
-func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
+eat_char_fcn	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<shared_ptr<node>>& nod, attribute* att )
 {
 	switch( currCh )
 	{
@@ -389,7 +398,7 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<sh
 			att->name.erase();
 			att->value.erase();
 
-			return (func_ptr)eat_tag_attr_name;
+			return eat_tag_attr_name;
 			break;
 		}
 		
@@ -418,13 +427,13 @@ func_ptr	eat_tag_attr_value_unquoted( char currCh, xml_reader& reader, vector<sh
 				nod.pop_back();
 				nod.back()->children.push_back( prevNode );
 			}
-			return (func_ptr)eat_whitespace;
+			return eat_whitespace;
 			break;
 		}
 		
 		default:
 			att->value.append( 1, currCh );
-			return (func_ptr)eat_tag_attr_value_unquoted;
+			return eat_tag_attr_value_unquoted;
 			break;
 	}
 	
@@ -436,7 +445,7 @@ xml_reader::xml_reader( document& inDoc, const char* inString, size_t inLength )
 	: doc(inDoc)
 {
 	vector<shared_ptr<node>>	nod;
-	inDoc.root = shared_ptr<node>(new node);
+	inDoc.root = make_shared<node>();
 	nod.push_back( inDoc.root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
@@ -452,7 +461,7 @@ xml_reader::xml_reader( document& inDoc, FILE* inFile )
 : doc(inDoc)
 {
 	vector<shared_ptr<node>>	nod;
-	inDoc.root = shared_ptr<node>(new node);
+	inDoc.root = make_shared<node>();
 	nod.push_back( inDoc.root );
 	attribute					att;
 	eat_char_fcn				state = eat_whitespace;
@@ -465,7 +474,7 @@ xml_reader::xml_reader( document& inDoc, FILE* inFile )
 
 document::document()
 {
-	root = shared_ptr<node>(new node);
+	root = make_shared<node>();
 }
 
 

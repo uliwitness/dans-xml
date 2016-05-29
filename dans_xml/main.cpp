@@ -29,6 +29,7 @@ string	path_next_to( string newFilename, string thePath )
 
 int main( int argc, const char * argv[] )
 {
+	printf( "=== Parse XML from a string & print it out:\n" );
 	const char*		str = "<!DOCTYPE foo=bar thing silly=\"good thing\">\n<html>\n<head>\n<title>This &lt;may&gt; be neat</title>\n</head>\n<body bgcolor = \"#ffeeff\" border = 1></body></html>";
 	document		theDoc;
 	xml_reader	theReader( theDoc, str,strlen(str) );
@@ -36,7 +37,7 @@ int main( int argc, const char * argv[] )
 	xml_writer	writer( stdout );
 	theDoc.write( &writer );
 	
-	printf( "\n\n" );
+	printf( "\n\n=== Build XML in memory and print it out:\n" );
 	
 	document	newDoc;
 	shared_ptr<tag>	doctype = make_shared<tag>("!DOCTYPE");
@@ -60,19 +61,20 @@ int main( int argc, const char * argv[] )
 	newDoc.write( &newWriter );
 
 	string		thePath = path_next_to( "newDoc.xml", argv[0] );
+	printf( "\n\n=== Build XML in memory and write it to file: %s\n", thePath.c_str() );
 	FILE*		theXMLFile = fopen( thePath.c_str(), "w" );
 	xml_writer	newWriter2( theXMLFile );
 	newDoc.write( &newWriter2 );
 	fclose( theXMLFile );
 
-	printf( "\n" );
-	
 	thePath = path_next_to( "newDoc.dnxml", argv[0] );
+	printf( "\n\n=== Write that XML out as Dan's Binary to file %s:\n", thePath.c_str() );
 	FILE*	theBinaryFile = fopen( thePath.c_str(), "w" );
 	binary_writer	binaryWriter( theBinaryFile );
 	theDoc.write( &binaryWriter );
 	fclose( theBinaryFile );
 	
+	printf( "\n\n=== Read Dan's Binary back in and print it out:\n" );
 	FILE*		theBinaryFile2 = fopen( thePath.c_str(), "r" );
 	document	binDoc;
 	binary_reader	binaryReader( binDoc, theBinaryFile2 );
@@ -80,6 +82,8 @@ int main( int argc, const char * argv[] )
 	
 	xml_writer	newWriter3( stdout );
 	binDoc.write( &newWriter3 );
+
+	printf( "\n" );
 
     return 0;
 }

@@ -141,6 +141,26 @@ void	binary_writer::write_close_tag( const std::string& inTagName, size_t numChi
 }
 
 
+binary_reader::binary_reader( document& inDoc, FILE* inFile )
+: doc(inDoc), file(inFile)
+{
+	// Start of our table contains some default strings that likelt every document will contain. No need to write those to the file:
+#define X(n)	stringTable.push_back(n);
+	INITIAL_STRING_TABLE
+#undef X
+	
+	uint8_t	numDefaults = read_typed<uint8_t>();
+	if( numDefaults > stringTable.size() )
+		return;	// Newer format, don't know what to use for the new string keys.
+	if( numDefaults < stringTable.size() )
+		stringTable.resize(numDefaults);// Discard the newer ones we know, so the document-defined indexes match.
+	
+	inDoc.root = make_shared<node>();
+	while( feof(inFile) == 0 )
+		read_one_tag( inDoc.root, read_typed<data_type>() );
+}
+
+
 template<class T>
 T	binary_reader::read_typed()
 {
@@ -150,19 +170,19 @@ T	binary_reader::read_typed()
 }
 
 
-std::string	binary_reader::read_one_string( bool *outSuccess )
+std::string	binary_reader::read_one_string( bool *outSuccess, data_type tagType )
 {
 	string	tagName;
 	
 	*outSuccess = true;
 	
-	switch( read_typed<uint8_t>() )
+	switch( tagType )
 	{
 		case NEWSTRING8:
 		{
 			uint8_t	len = read_typed<uint8_t>();
 			tagName.resize(len);
-			fread( &(tagName[0]), 1, 1, file );
+			fread( &(tagName[0]), 1, len, file );
 			stringTable.push_back(tagName);
 			break;
 		}
@@ -183,10 +203,10 @@ std::string	binary_reader::read_one_string( bool *outSuccess )
 bool	binary_reader::read_one_attribute( shared_ptr<tag> parent )
 {
 	bool	success = true;
-	string	name = read_one_string( &success );
+	string	name = read_one_string( &success, read_typed<data_type>() );
 	if( !success )
 		return false;
-	string	value = read_one_string( &success );
+	string	value = read_one_string( &success, read_typed<data_type>() );
 	if( !success )
 		return false;
 	parent->set_attribute( name, value );
@@ -194,18 +214,60 @@ bool	binary_reader::read_one_attribute( shared_ptr<tag> parent )
 }
 
 
-bool	binary_reader::read_one_tag( shared_ptr<node> parent )
+bool	binary_reader::read_one_tag_or_string( shared_ptr<node> parent, data_type tagType )
+{
+	switch( tagType )
+	{
+		case BOOLEAN_FALSE:
+			return false; // TODO
+			break;
+			
+		case BOOLEAN_TRUE:
+			return false; // TODO
+			break;
+			
+		case SINT64:
+			return false; // TODO
+			break;
+			
+		case NEWSTRING8:
+		case STRING8:
+		{
+			bool	success = false;
+			shared_ptr<text>	theText = make_shared<text>();
+			theText->actualText = read_one_string( &success, tagType );
+			if( success )
+				parent->children.push_back( theText );
+			return success;
+			break;
+		}
+			
+		case NEWEMPTYTAG8:
+		case EMPTYTAG8:
+		case NEWTAG8:
+		case TAG8:
+			read_one_tag( parent, tagType );
+			break;
+		default:
+			return false;
+	}
+	
+	return true;
+}
+
+
+bool	binary_reader::read_one_tag( shared_ptr<node> parent, data_type tagType )
 {
 	string	tagName;
 	size_t	numAttributes = 0;
 	size_t	numChildren = 0;
-	switch( read_typed<uint8_t>() )
+	switch( tagType )
 	{
 		case NEWEMPTYTAG8:
 		{
 			uint8_t	len = read_typed<uint8_t>();
 			tagName.resize(len);
-			fread( &(tagName[0]), 1, 1, file );
+			fread( &(tagName[0]), 1, len, file );
 			stringTable.push_back(tagName);
 			break;
 		}
@@ -213,7 +275,7 @@ bool	binary_reader::read_one_tag( shared_ptr<node> parent )
 		{
 			uint8_t	len = read_typed<uint8_t>();
 			tagName.resize(len);
-			fread( &(tagName[0]), 1, 1, file );
+			fread( &(tagName[0]), 1, len, file );
 			stringTable.push_back(tagName);
 			numAttributes = read_typed<uint8_t>();
 			break;
@@ -248,29 +310,10 @@ bool	binary_reader::read_one_tag( shared_ptr<node> parent )
 
 	for( size_t x = 0; x < numChildren; x++ )
 	{
-		if( !read_one_tag( newTag ) )
+		if( !read_one_tag_or_string( newTag, read_typed<data_type>() ) )
 			return false;
 	}
 	
 	return true;
-}
-
-
-binary_reader::binary_reader( document& inDoc, FILE* inFile )
-	: doc(inDoc), file(inFile)
-{
-	// Start of our table contains some default strings that likelt every document will contain. No need to write those to the file:
-	#define X(n)	stringTable.push_back(n);
-	INITIAL_STRING_TABLE
-	#undef X
-	
-	uint8_t	numDefaults = read_typed<uint8_t>();
-	if( numDefaults > stringTable.size() )
-		return;	// Newer format, don't know what to use for the new string keys.
-	if( numDefaults < stringTable.size() )
-		stringTable.resize(numDefaults);// Discard the newer ones we know, so the document-defined indexes match.
-	
-	inDoc.root = shared_ptr<node>(new node);
-	read_one_tag( inDoc.root );
 }
 
