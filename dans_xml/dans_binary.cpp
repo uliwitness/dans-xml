@@ -180,7 +180,7 @@ template<class T>
 T	binary_reader::read_typed()
 {
 	T	type = 0;
-	size_t numRead = fread( &type, sizeof(type), 1, file );
+	fread( &type, sizeof(type), 1, file );
 	return type;
 }
 
